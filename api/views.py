@@ -1,45 +1,63 @@
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from rest_framework.decorators import api_view,permission_classes
-from rest_framework.response import Response
+from django.views.decorators.csrf import csrf_exempt
+#from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticated
+from django.http import JsonResponse
+import json
 
-@api_view(['POST'])
-def register_user(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
+@csrf_exempt
+def signup_user(request):
+    if request.method != 'POST': 
+        return JsonResponse({'error':'only POST method used for this'},status=405)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
+    username = data.get('username')
+    password = data.get('password')
     if not username or not password:
-        return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     if User.objects.filter(username=username).exists():
-        return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create_user(username=username, password=password)
-    return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
+    return JsonResponse({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
 
 
-@api_view(['POST'])
+@csrf_exempt
 def login_user(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
+    if request.method != 'POST': 
+        return JsonResponse({'error':'only POST method used for this'},status=405)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid Json'},status=400)
+    username = data.get('username')
+    password = data.get('password')
 
     user = authenticate(username=username, password=password)
     if user is not None:
         refresh = RefreshToken.for_user(user)
-        return Response({
+        return JsonResponse({
             'refresh': str(refresh),
             'access': str(refresh.access_token)
         })
-    return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+    return JsonResponse({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
+
+@csrf_exempt
 def get_profile(request):
+    if request.method != 'GET': 
+        return JsonResponse({'error':'only GET method used for this'},status=405)
+    
     user = request.user
-    return Response({
+    return JsonResponse({
         'id': user.id,
         'username': user.username,
-    })
+    })  
