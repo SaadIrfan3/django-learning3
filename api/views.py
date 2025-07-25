@@ -1,12 +1,11 @@
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
-#from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import JsonResponse
 import json
-
+from rest_framework_simplejwt.tokens import AccessToken
 @csrf_exempt
 def signup_user(request):
     if request.method != 'POST': 
@@ -56,8 +55,20 @@ def get_profile(request):
     if request.method != 'GET': 
         return JsonResponse({'error':'only GET method used for this'},status=405)
     
-    user = request.user
-    return JsonResponse({
-        'id': user.id,
-        'username': user.username,
-    })  
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Authorization header missing or invalid'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        access_token = AccessToken(token)
+        user_id = access_token['user_id']  # This works with SimpleJWT
+
+        user = User.objects.get(id=user_id)
+        return JsonResponse({
+            'id': user.id,
+            'username': user.username
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=401)  
