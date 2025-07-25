@@ -11,13 +11,9 @@ def signup_user(request):
     if request.method != 'POST': 
         return JsonResponse({'error':'only POST method used for this'},status=405)
     
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    username = data.get('username')
-    password = data.get('password')
+    username = request.POST.get('username')
+    password = request.POST.get('password')
     if not username or not password:
         return JsonResponse({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -33,12 +29,9 @@ def login_user(request):
     if request.method != 'POST': 
         return JsonResponse({'error':'only POST method used for this'},status=405)
     
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'invalid Json'},status=400)
-    username = data.get('username')
-    password = data.get('password')
+    
+    username = request.POST.get('username')
+    password = request.POST.get('password')
 
     user = authenticate(username=username, password=password)
     if user is not None:
